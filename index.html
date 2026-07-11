@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PrepChef AI - Personal Cooking To-Do List & Meal Planner</title>
+  <!-- Google Fonts: Outfit -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Custom Styling -->
+  <link rel="stylesheet" href="index.css">
+</head>
+<body>
+  <div class="app-container">
+    
+    <!-- Top Header -->
+    <header class="app-header">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <i data-lucide="chef-hat"></i>
+        </div>
+        <div class="logo-text">
+          <h1>PrepChef <span>AI</span></h1>
+          <p>Meal planning synced with your day</p>
+        </div>
+      </div>
+      
+      <!-- Streaks & Actions -->
+      <div class="header-actions">
+        <div class="streak-badge" id="streakBadge" title="Your daily cooking streak!">
+          <div class="flame-icon">
+            <i data-lucide="flame"></i>
+          </div>
+          <span class="streak-count" id="streakCount">0</span> Day Streak
+        </div>
+        <button class="icon-btn" id="openSettingsBtn" title="API Settings">
+          <i data-lucide="settings"></i>
+        </button>
+      </div>
+    </header>
+
+    <main class="app-main">
+      
+      <!-- API Key Setup Banner if not set -->
+      <div class="api-warning-banner hidden" id="apiWarning">
+        <div class="warning-icon">
+          <i data-lucide="alert-triangle"></i>
+        </div>
+        <div class="warning-text">
+          <strong>Gemini API Key Needed:</strong> Please set your Gemini API key in the settings to generate personalized meal plans.
+        </div>
+        <button class="text-link-btn" id="setupKeyBtn">Set Key Now</button>
+      </div>
+
+      <!-- Left Column: Inputs & Stats -->
+      <div class="left-column">
+        
+        <!-- Planner Form -->
+        <section class="card planner-card">
+          <h2 class="section-title"><i data-lucide="sliders"></i> Customize Your Day</h2>
+          <form id="plannerForm">
+            
+            <div class="form-group">
+              <label for="dayDescription">How is your day looking?</label>
+              <textarea id="dayDescription" placeholder="e.g., Super busy day with back-to-back meetings, need quick 15-min lunch, but have time for a relaxing dinner." required></textarea>
+            </div>
+            
+            <div class="grid-2-cols">
+              <div class="form-group">
+                <label for="dietaryPref">Dietary Preference</label>
+                <div class="select-wrapper">
+                  <select id="dietaryPref">
+                    <option value="Vegetarian">Vegetarian</option>
+                    <option value="Non-Vegetarian" selected>Non-Vegetarian</option>
+                    <option value="Vegan">Vegan</option>
+                  </select>
+                </div>
+              </div>
+              
+              <div class="form-group">
+                <label for="budgetTier">Daily Food Budget</label>
+                <div class="select-wrapper">
+                  <select id="budgetTier">
+                    <option value="Low">Low Budget (under ₹250)</option>
+                    <option value="Medium" selected>Standard Budget (₹250 - ₹600)</option>
+                    <option value="High">Gourmet / Deluxe (₹600+)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label for="allergies">Allergies / Dislikes / Exclusions</label>
+              <input type="text" id="allergies" placeholder="e.g., peanuts, gluten-free, no cilantro, no mushrooms">
+            </div>
+
+            <button type="submit" class="primary-btn" id="generateBtn">
+              <span class="btn-text">Generate Meal Plan</span>
+              <span class="spinner hidden"></span>
+            </button>
+          </form>
+        </section>
+
+        <!-- Achievements & Virtual Chef Coach -->
+        <section class="card chef-coach-card">
+          <div class="chef-avatar-section">
+            <div class="chef-avatar">
+              <img src="https://api.dicebear.com/7.x/bottts/svg?seed=chef-pierre&backgroundColor=ffb703" alt="Chef Pierre" id="chefImage">
+            </div>
+            <div class="chef-bubble">
+              <h3 class="chef-name">Chef Pierre</h3>
+              <p class="chef-speech" id="chefComment">Bonjour! Set your schedule above, and I will craft a perfect meal plan that saves you money, fits your diet, and handles your busy hours!</p>
+            </div>
+          </div>
+
+          <hr class="card-divider">
+
+          <div class="achievements-section">
+            <h3 class="subsection-title"><i data-lucide="award"></i> Unlocked Achievements</h3>
+            <div class="badges-grid" id="badgesGrid">
+              <!-- Dynamically populated badges -->
+              <div class="badge-item locked" id="badge-first-meal" title="Complete your first meal cooking plan!">
+                <div class="badge-icon"><i data-lucide="check-circle"></i></div>
+                <span>First Chef</span>
+              </div>
+              <div class="badge-item locked" id="badge-streak-3" title="Reach a 3-day cooking streak!">
+                <div class="badge-icon"><i data-lucide="zap"></i></div>
+                <span>Streak Fire</span>
+              </div>
+              <div class="badge-item locked" id="badge-budget-saver" title="Stay under budget on your meals!">
+                <div class="badge-icon"><i data-lucide="piggy-bank"></i></div>
+                <span>Budget Star</span>
+              </div>
+              <div class="badge-item locked" id="badge-allergy-safe" title="Generate an allergy-safe plan!">
+                <div class="badge-icon"><i data-lucide="shield-check"></i></div>
+                <span>Safety First</span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <!-- Right Column: Meal output, to-do checklist, budget calculator -->
+      <div class="right-column">
+        
+        <!-- Welcome state or loading state -->
+        <div id="emptyState" class="empty-state">
+          <div class="empty-icon"><i data-lucide="cooking-pot"></i></div>
+          <h2>Your Cooking To-Do List Awaits</h2>
+          <p>Fill out the questionnaire on the left. PrepChef AI will build a personalized Breakfast/Lunch/Dinner plan, map out your groceries, suggest substitutions, and calculate your budget feasibility.</p>
+        </div>
+
+        <div id="plannerResults" class="planner-results hidden">
+          
+          <!-- Daily Progress Tracker -->
+          <div class="card progress-card">
+            <div class="progress-info">
+              <h2>Today's To-Do List Progress</h2>
+              <span class="progress-pct" id="progressPercentage">0%</span>
+            </div>
+            <div class="progress-bar-bg">
+              <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+            </div>
+            <div class="progress-summary-text" id="progressSummary">
+              0 out of 3 meals completed. Finish them to keep your streak alive!
+            </div>
+          </div>
+
+          <!-- Breakfast / Lunch / Dinner Plan -->
+          <section class="card meals-card">
+            <h2 class="section-title"><i data-lucide="utensils"></i> Today's Meal Plan</h2>
+            <div class="meals-grid">
+              
+              <!-- Breakfast -->
+              <div class="meal-item" id="meal-breakfast-card">
+                <div class="meal-header">
+                  <span class="meal-tag breakfast"><i data-lucide="coffee"></i> Breakfast</span>
+                  <label class="meal-complete-checkbox-container">
+                    <input type="checkbox" class="meal-status-checkbox" data-meal="breakfast">
+                    <span class="checkmark"></span>
+                  </label>
+                </div>
+                <h3 class="meal-name" id="bf-name">Meal Name</h3>
+                <p class="meal-desc" id="bf-desc">Meal Description</p>
+                <div class="meal-meta">
+                  <span><i data-lucide="clock"></i> <span id="bf-time">15 min</span></span>
+                  <span><i data-lucide="indian-rupee"></i> <span id="bf-cost">100.00</span></span>
+                </div>
+                
+                <div class="cooking-checklist-section">
+                  <h4 class="checklist-title">Cooking Steps</h4>
+                  <ul class="checklist-steps" id="bf-steps">
+                    <!-- Steps will be injected here -->
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Lunch -->
+              <div class="meal-item" id="meal-lunch-card">
+                <div class="meal-header">
+                  <span class="meal-tag lunch"><i data-lucide="sun"></i> Lunch</span>
+                  <label class="meal-complete-checkbox-container">
+                    <input type="checkbox" class="meal-status-checkbox" data-meal="lunch">
+                    <span class="checkmark"></span>
+                  </label>
+                </div>
+                <h3 class="meal-name" id="lh-name">Meal Name</h3>
+                <p class="meal-desc" id="lh-desc">Meal Description</p>
+                <div class="meal-meta">
+                  <span><i data-lucide="clock"></i> <span id="lh-time">20 min</span></span>
+                  <span><i data-lucide="indian-rupee"></i> <span id="lh-cost">150.00</span></span>
+                </div>
+                
+                <div class="cooking-checklist-section">
+                  <h4 class="checklist-title">Cooking Steps</h4>
+                  <ul class="checklist-steps" id="lh-steps">
+                    <!-- Steps will be injected here -->
+                  </ul>
+                </div>
+              </div>
+
+              <!-- Dinner -->
+              <div class="meal-item" id="meal-dinner-card">
+                <div class="meal-header">
+                  <span class="meal-tag dinner"><i data-lucide="moon"></i> Dinner</span>
+                  <label class="meal-complete-checkbox-container">
+                    <input type="checkbox" class="meal-status-checkbox" data-meal="dinner">
+                    <span class="checkmark"></span>
+                  </label>
+                </div>
+                <h3 class="meal-name" id="dn-name">Meal Name</h3>
+                <p class="meal-desc" id="dn-desc">Meal Description</p>
+                <div class="meal-meta">
+                  <span><i data-lucide="clock"></i> <span id="dn-time">35 min</span></span>
+                  <span><i data-lucide="indian-rupee"></i> <span id="dn-cost">250.00</span></span>
+                </div>
+                
+                <div class="cooking-checklist-section">
+                  <h4 class="checklist-title">Cooking Steps</h4>
+                  <ul class="checklist-steps" id="dn-steps">
+                    <!-- Steps will be injected here -->
+                  </ul>
+                </div>
+              </div>
+
+            </div>
+          </section>
+
+          <!-- Grocery List & Dynamic Budget Calculator -->
+          <div class="grid-2-cols">
+            
+            <!-- Grocery List -->
+            <section class="card grocery-card">
+              <div class="card-header-with-action">
+                <h2 class="section-title"><i data-lucide="shopping-basket"></i> Grocery List</h2>
+                <span class="grocery-count" id="groceryCheckCount">0/0 checked</span>
+              </div>
+              <p class="subtitle">Check off ingredients you already have. Edit prices to update calculations.</p>
+              <ul class="grocery-items-list" id="groceryList">
+                <!-- Dynamically generated list -->
+              </ul>
+            </section>
+
+            <!-- Budget Feasibility & Substitutions -->
+            <div class="budget-sub-column">
+              
+              <!-- Budget Feasibility Logic Card -->
+              <section class="card budget-feasibility-card">
+                <h2 class="section-title"><i data-lucide="scale"></i> Budget Feasibility</h2>
+                
+                <div class="budget-gauge-container">
+                  <div class="budget-gauge-bar">
+                    <div class="budget-gauge-fill" id="budgetGaugeFill" style="width: 50%;"></div>
+                  </div>
+                  <div class="budget-gauge-labels">
+                    <span>₹0.00</span>
+                    <span class="budget-limit-label" id="budgetLimitLabel">Limit: ₹500.00</span>
+                  </div>
+                </div>
+
+                <div class="budget-summary-box">
+                  <div class="budget-row">
+                    <span class="label">Target Budget:</span>
+                    <span class="value" id="targetBudgetVal">₹500.00</span>
+                  </div>
+                  <div class="budget-row">
+                    <span class="label">Total Cook Cost:</span>
+                    <span class="value highlight-val" id="totalCookCostVal">₹450.00</span>
+                  </div>
+                  <div class="budget-row divider">
+                    <span class="label">Remaining:</span>
+                    <span class="value" id="budgetRemainingVal">+₹50.00</span>
+                  </div>
+                </div>
+
+                <div class="feasibility-status-badge" id="feasibilityStatusBadge">
+                  <i data-lucide="check-circle-2"></i> Within Budget
+                </div>
+
+                <p class="budget-analysis-advice" id="budgetAdvice">
+                  Great! Your planned meals are cost-effective and fall well within your daily spending threshold.
+                </p>
+              </section>
+
+              <!-- Substitutions Panel -->
+              <section class="card substitutions-card">
+                <h2 class="section-title"><i data-lucide="shuffle"></i> Dietary & Budget Substitutes</h2>
+                <p class="subtitle">Alternative options based on your allergies or to save money.</p>
+                <div class="subs-container" id="subsContainer">
+                  <!-- Dynamically populated -->
+                </div>
+              </section>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </main>
+
+    <!-- Settings Modal -->
+    <div class="modal-overlay hidden" id="settingsModal">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h2><i data-lucide="settings"></i> Developer Settings</h2>
+          <button class="icon-btn" id="closeSettingsBtn"><i data-lucide="x"></i></button>
+        </div>
+        <div class="modal-body">
+          <p class="settings-desc">To run real-time AI meal planning, provide a Google Gemini API Key. The key is stored locally in your browser cache and is never sent to any third-party servers.</p>
+          <div class="form-group">
+            <label for="geminiApiKey">Gemini API Key</label>
+            <input type="password" id="geminiApiKey" placeholder="AIzaSy...">
+            <span class="helper-text">
+              Don't have a key? Get a free key from <a href="https://aistudio.google.com/" target="_blank" rel="noopener noreferrer">Google AI Studio</a>.
+            </span>
+          </div>
+          
+          <div class="settings-demo-toggle">
+            <label class="toggle-container">
+              <input type="checkbox" id="useMockData">
+              <span class="toggle-slider"></span>
+            </label>
+            <div class="toggle-text">
+              <strong>Allow Fallback to Demo Data</strong>
+              <p>If checked and API key is missing or invalid, the app will load sample data so you can test features.</p>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="secondary-btn" id="cancelSettingsBtn">Cancel</button>
+          <button class="primary-btn" id="saveSettingsBtn">Save Changes</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Celebration Overlay for Streak & Completion -->
+    <div class="celebration-overlay hidden" id="celebrationOverlay">
+      <div class="celebration-card">
+        <div class="celebration-icon">
+          <i data-lucide="trophy" class="icon-trophy"></i>
+        </div>
+        <h2 id="celebrationTitle">Daily Cooking Goals Completed!</h2>
+        <p id="celebrationMessage">Fantastic job cooking today! Your streak is now active.</p>
+        <button class="primary-btn" id="closeCelebrationBtn">Keep Cooking!</button>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
