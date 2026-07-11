@@ -5,7 +5,7 @@
 // --- Application State ---
 const state = {
   apiKey: localStorage.getItem('prepchef_api_key') || '',
-  useMockData: localStorage.getItem('prepchef_use_mock') === 'true',
+  useMockData: localStorage.getItem('prepchef_use_mock') !== 'false',
   streak: parseInt(localStorage.getItem('prepchef_streak_count') || '0'),
   lastStreakDate: localStorage.getItem('prepchef_last_streak_date') || '',
   achievements: JSON.parse(localStorage.getItem('prepchef_achievements') || '{}'),
